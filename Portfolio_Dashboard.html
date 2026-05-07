@@ -1,0 +1,1472 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>Personal Wealth Dashboard · Alpha</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --surface: #05070D; --surface-alt: #080B12;
+  --card: #111827; --card-alt: #1F2937; --card-hover: #1A2332;
+  --border: #2D3748; --border-soft: #1F2937;
+  --text-1: #F9FAFB; --text-2: #9CA3AF; --text-3: #6B7280;
+  --accent: #3B82F6; --accent-soft: #1E3A8A; --accent-alt: #06B6D4;
+  --positive: #22C55E; --positive-soft: #052E16;
+  --negative: #EF4444; --negative-soft: #3B0A0A;
+  --warning: #F59E0B; --warning-soft: #3B2A06;
+  --neutral: #94A3B8;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  background: var(--surface); color: var(--text-1);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Apple SD Gothic Neo', '맑은 고딕', sans-serif;
+  font-feature-settings: "tnum" on, "ss01" on;
+  font-size: 14px; line-height: 1.5;
+}
+.app { max-width: 1320px; margin: 0 auto; padding: 24px 28px 64px; }
+
+/* ── TOPBAR ───────────────────────────── */
+.topbar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0 24px; margin-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.brand-eyebrow {
+  font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--accent); font-weight: 600;
+}
+.brand-title {
+  font-size: 1.4rem; font-weight: 700; letter-spacing: -0.01em;
+  margin-top: 2px; color: var(--text-1);
+}
+.controls { display: flex; align-items: center; gap: 16px; }
+.meta { font-size: 0.82rem; color: var(--text-2); }
+.btn {
+  background: var(--card-alt); color: var(--text-1);
+  border: 1px solid var(--border); padding: 8px 16px;
+  border-radius: 8px; font-size: 0.85rem; font-weight: 500;
+  cursor: pointer; transition: all 0.15s;
+  font-family: inherit;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-primary:hover { background: var(--accent-alt); border-color: var(--accent-alt); color: #fff; }
+
+/* ── EYEBROW ──────────────────────────── */
+.eyebrow {
+  font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text-2); font-weight: 600; margin-bottom: 6px;
+}
+
+/* ── HERO ─────────────────────────────── */
+.hero {
+  background: linear-gradient(180deg, var(--card) 0%, var(--surface) 100%);
+  border: 1px solid var(--border); border-radius: 16px;
+  padding: 28px 32px; margin: 24px 0;
+}
+.hero-title {
+  font-size: 1.4rem; font-weight: 700; line-height: 1.55;
+  color: var(--text-1); margin-top: 4px;
+}
+.hero-sub {
+  margin-top: 14px; color: var(--text-2);
+  font-size: 0.95rem; line-height: 1.7;
+}
+
+/* ── CARDS ────────────────────────────── */
+.card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 14px; padding: 20px 22px;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.02), 0 8px 24px rgba(0,0,0,0.35);
+}
+.card-tight { padding: 14px 16px; border-radius: 12px; }
+.card h3 { font-size: 1.05rem; margin-bottom: 12px; color: var(--text-1); }
+.card-title-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
+.card-title-row h3 { margin-bottom: 0; }
+.card-sub { color: var(--text-2); font-size: 0.82rem; }
+
+/* ── KPI GRIDS ────────────────────────── */
+.grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 14px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.kpi {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 16px 18px;
+}
+.kpi-primary { background: linear-gradient(165deg, var(--card) 0%, var(--card-alt) 100%); }
+.kpi-label {
+  font-size: 0.7rem; letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--text-2); font-weight: 600;
+}
+.kpi-value {
+  font-size: 1.55rem; font-weight: 700; color: var(--text-1);
+  line-height: 1.1; margin-top: 6px; font-variant-numeric: tabular-nums;
+}
+.kpi-value-sm { font-size: 1.25rem; }
+.kpi-sub { font-size: 0.72rem; color: var(--text-3); margin-top: 4px; letter-spacing: 0.04em; }
+
+/* ── PILLS ────────────────────────────── */
+.pill {
+  display: inline-block; padding: 3px 10px; border-radius: 999px;
+  font-size: 0.72rem; font-weight: 600; letter-spacing: 0.02em;
+  background: var(--accent-soft); color: var(--accent);
+  border: 1px solid var(--accent-soft);
+}
+.pill.warn { background: var(--warning-soft); color: var(--warning); border-color: var(--warning-soft); }
+.pill.danger { background: var(--negative-soft); color: var(--negative); border-color: var(--negative-soft); }
+.pill.good { background: var(--positive-soft); color: var(--positive); border-color: var(--positive-soft); }
+.pill.muted { background: var(--card-alt); color: var(--text-2); border-color: var(--border); }
+.pill.high { background: var(--negative-soft); color: var(--negative); border-color: var(--negative-soft); }
+
+/* ── RISK STRIP ───────────────────────── */
+.risk-strip {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;
+  margin: 24px 0;
+}
+.risk-tile {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px 16px;
+}
+.risk-tile-label { font-size: 0.74rem; color: var(--text-2); margin-bottom: 6px; }
+.risk-tile-value {
+  font-size: 1.5rem; font-weight: 700; line-height: 1;
+  font-variant-numeric: tabular-nums; margin-bottom: 4px;
+}
+.risk-tile-status { display: flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-3); margin-top: 2px; }
+
+/* ── TABLES ───────────────────────────── */
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl th {
+  text-align: center; font-size: 0.7rem; text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--text-2); font-weight: 600;
+  background: var(--card-alt); padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.tbl td {
+  padding: 11px 12px; border-bottom: 1px solid var(--border);
+  font-size: 0.88rem; color: var(--text-1); font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.tbl tr:hover td { background: rgba(255,255,255,0.015); }
+.tbl tr:last-child td { border-bottom: none; }
+.tbl td.num, .tbl th.num { text-align: right; }
+.tbl td.center { text-align: center; }
+.tbl td.muted { color: var(--text-2); }
+.tbl td.wrap, .tbl th.wrap { white-space: normal; min-width: 220px; }
+.tbl-card { overflow-x: auto; }  /* 카드형 테이블 가로 스크롤 허용 */
+.flags-cell { display: inline-flex; flex-wrap: nowrap; gap: 4px; align-items: center; }
+.positive { color: var(--positive); }
+.negative { color: var(--negative); }
+
+/* ── WEALTH EVOLUTION (top motivational) ─ */
+.evo-section { margin: 8px 0 28px; }
+.evo-page-title {
+  font-size: 1.4rem; font-weight: 700; color: var(--text-1);
+  letter-spacing: -0.01em; margin-bottom: 4px;
+}
+.evo-page-sub {
+  font-size: 0.84rem; color: var(--text-2); margin-bottom: 16px;
+}
+.evo-hero {
+  background: linear-gradient(135deg, var(--card) 0%, var(--card-alt) 100%);
+  border: 1px solid var(--accent);
+  border-radius: 18px;
+  padding: 28px 32px;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 32px;
+  align-items: center;
+  margin-bottom: 18px;
+  box-shadow: 0 0 0 1px rgba(59,130,246,0.18), 0 12px 36px rgba(59,130,246,0.12);
+}
+.evo-character-block {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+.evo-img-wrap {
+  width: 220px; height: 220px;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent;  /* 투명 배경 */
+  position: relative;
+}
+.evo-img-wrap img {
+  max-width: 100%; max-height: 100%;
+  object-fit: contain;
+  background: transparent;
+}
+.evo-img-ph {
+  position: absolute; inset: 0;
+  display: none;  /* hidden by default; shown via onerror */
+  flex-direction: column; gap: 8px;
+  align-items: center; justify-content: center;
+  background: var(--surface-alt); border: 1px dashed var(--border);
+  border-radius: 12px; color: var(--text-3);
+}
+.evo-img-ph .ph-name { font-size: 1.2rem; font-weight: 700; color: var(--text-1); }
+.evo-img-ph .ph-note { font-size: 0.76rem; }
+.evo-character-name {
+  font-size: 1.5rem; font-weight: 700; color: var(--text-1);
+  letter-spacing: -0.01em;
+}
+
+.evo-info-block { display: flex; flex-direction: column; gap: 14px; }
+.evo-stage-pill {
+  display: inline-block;
+  padding: 4px 12px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent);
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em;
+  align-self: flex-start;
+}
+
+.evo-prog-row { display: flex; flex-direction: column; gap: 6px; }
+.evo-prog-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 0.85rem; color: var(--text-1);
+}
+.evo-prog-head .label { color: var(--text-2); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; }
+.evo-prog-head .pct { font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+.evo-bar-track {
+  height: 12px; background: var(--surface-alt);
+  border: 1px solid var(--border); border-radius: 999px;
+  overflow: hidden; position: relative;
+}
+.evo-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-alt) 100%);
+  transition: width 0.6s ease-out;
+  border-radius: 999px;
+}
+.evo-bar-fill.alt {
+  background: linear-gradient(90deg, var(--positive) 0%, #34D399 100%);
+}
+.evo-prog-meta {
+  display: flex; justify-content: space-between;
+  font-size: 0.74rem; color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.evo-targets {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px; margin-top: 4px;
+}
+.evo-target-card {
+  background: var(--surface-alt); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 14px;
+}
+.evo-target-card .label {
+  font-size: 0.68rem; color: var(--text-2);
+  text-transform: uppercase; letter-spacing: 0.07em; font-weight: 600;
+  margin-bottom: 4px;
+}
+.evo-target-card .name {
+  font-size: 1rem; font-weight: 700; color: var(--text-1);
+  margin-bottom: 2px;
+}
+.evo-target-card .meta {
+  font-size: 0.78rem; color: var(--text-2); font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 980px) {
+  .evo-hero { grid-template-columns: 1fr; gap: 20px; padding: 22px; }
+  .evo-img-wrap { width: 180px; height: 180px; }
+  .evo-targets { grid-template-columns: 1fr; }
+}
+
+/* ── ACTIONS / RISKS LIST ─────────────── */
+.list-item {
+  padding: 12px 0; border-bottom: 1px dashed var(--border);
+  display: flex; gap: 12px; align-items: flex-start;
+}
+.list-item:last-child { border-bottom: none; }
+.list-num {
+  flex-shrink: 0; width: 22px; height: 22px; border-radius: 6px;
+  background: var(--accent-soft); color: var(--accent);
+  font-size: 0.78rem; font-weight: 700; display: flex; align-items: center; justify-content: center;
+}
+.list-num.warn { background: var(--warning-soft); color: var(--warning); }
+.list-num.danger { background: var(--negative-soft); color: var(--negative); }
+.list-text { flex: 1; line-height: 1.55; font-size: 0.92rem; color: var(--text-1); }
+
+/* ── CHARTS ───────────────────────────── */
+.chart-wrap { position: relative; height: 280px; }
+.chart-wrap.tall { height: 380px; }
+.chart-wrap.wide { height: 240px; }
+
+/* ── SECTION TITLE ────────────────────── */
+.section-h {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin: 36px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border-soft);
+}
+.section-h h2 {
+  font-size: 1.05rem; font-weight: 600; color: var(--text-1);
+  letter-spacing: -0.005em;
+}
+.section-h .meta { font-size: 0.8rem; color: var(--text-3); }
+
+/* ── DROPZONE ─────────────────────────── */
+.dropzone {
+  margin: 16px 0 24px;
+  padding: 16px 20px;
+  background: var(--card); border: 1px dashed var(--border);
+  border-radius: 12px; text-align: center; color: var(--text-2); font-size: 0.85rem;
+  transition: all 0.15s; cursor: pointer;
+}
+.dropzone.dragover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.dropzone strong { color: var(--text-1); }
+
+/* ── FOOTER ───────────────────────────── */
+.footer {
+  margin-top: 48px; padding-top: 20px;
+  border-top: 1px solid var(--border-soft);
+  color: var(--text-3); font-size: 0.78rem;
+  display: flex; justify-content: space-between;
+}
+
+/* ── RESPONSIVE ───────────────────────── */
+@media (max-width: 980px) {
+  .grid-5, .risk-strip { grid-template-columns: repeat(2, 1fr); }
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .topbar { flex-direction: column; align-items: flex-start; gap: 12px; }
+}
+@media (max-width: 600px) {
+  .app { padding: 16px 14px 40px; }
+  .grid-5, .risk-strip { grid-template-columns: 1fr; }
+  .hero { padding: 20px; }
+  .hero-title { font-size: 1.15rem; }
+  .kpi-value { font-size: 1.3rem; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div>
+      <div class="brand-eyebrow">PERSONAL WEALTH · ALPHA</div>
+      <div class="brand-title">Asset Dashboard</div>
+    </div>
+    <div class="controls">
+      <span class="meta">기준일 <strong id="meta-asof">2026-05-05</strong></span>
+      <input type="file" id="file-input" accept=".xlsx" style="display:none" />
+      <button class="btn btn-primary" id="btn-reload">데이터 갱신</button>
+    </div>
+  </header>
+
+  <!-- ★ WEALTH EVOLUTION (TOP) ★ -->
+  <section class="evo-section">
+    <div class="evo-page-title">Wealth Evolution</div>
+    <div class="evo-page-sub">순자산 성장에 따라 캐릭터가 진화합니다 · 최종 목표 순자산 20억원</div>
+
+    <div class="evo-hero">
+      <!-- 캐릭터 이미지 + 이름 -->
+      <div class="evo-character-block">
+        <div class="evo-img-wrap">
+          <img id="evo-img" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <div class="evo-img-ph">
+            <span class="ph-name" id="evo-img-ph-name">—</span>
+            <span class="ph-note">이미지 미등록</span>
+          </div>
+        </div>
+        <div class="evo-character-name" id="evo-char-name">—</div>
+      </div>
+
+      <!-- 우측 정보 + EXP 바 -->
+      <div class="evo-info-block">
+        <div>
+          <span class="evo-stage-pill" id="evo-stage-pill">Stage —</span>
+          <div style="font-size:0.84rem;color:var(--text-2);margin-top:8px;" id="evo-range">—</div>
+          <div style="font-size:0.86rem;color:var(--text-2);margin-top:4px;font-style:italic;" id="evo-meaning">—</div>
+        </div>
+
+        <!-- 현재 구간 EXP 바 -->
+        <div class="evo-prog-row">
+          <div class="evo-prog-head">
+            <span class="label">현재 구간 EXP</span>
+            <span class="pct" id="evo-stage-pct">—</span>
+          </div>
+          <div class="evo-bar-track">
+            <div class="evo-bar-fill" id="evo-stage-bar" style="width:0%"></div>
+          </div>
+          <div class="evo-prog-meta">
+            <span id="evo-stage-from">—</span>
+            <span id="evo-stage-to">—</span>
+          </div>
+        </div>
+
+        <!-- 전체 목표 진행률 -->
+        <div class="evo-prog-row">
+          <div class="evo-prog-head">
+            <span class="label">최종 목표 진행률 (20억원)</span>
+            <span class="pct" id="evo-overall-pct">—</span>
+          </div>
+          <div class="evo-bar-track">
+            <div class="evo-bar-fill alt" id="evo-overall-bar" style="width:0%"></div>
+          </div>
+          <div class="evo-prog-meta">
+            <span id="evo-overall-meta">—</span>
+            <span>최종 목표 ₩20.0억</span>
+          </div>
+        </div>
+
+        <!-- 다음 진화 / 최종 목표 카드 -->
+        <div class="evo-targets">
+          <div class="evo-target-card">
+            <div class="label">다음 진화</div>
+            <div class="name" id="evo-next-name">—</div>
+            <div class="meta" id="evo-next-meta">—</div>
+          </div>
+          <div class="evo-target-card">
+            <div class="label">최종 목표</div>
+            <div class="name">황제드라몬 팔라딘 모드</div>
+            <div class="meta" id="evo-final-meta">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 진화 단계 테이블 -->
+    <div class="card tbl-card" style="padding:0;">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Stage</th>
+            <th>캐릭터명</th>
+            <th>순자산 구간</th>
+            <th>진화 조건</th>
+            <th class="wrap">의미</th>
+          </tr>
+        </thead>
+        <tbody id="evo-table-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="eyebrow">오늘의 한 줄 요약</div>
+    <div class="hero-title" id="hero-title">
+      현재 포트폴리오는 부동산 계약금(약 42%)과 비트코인(약 19%), CRDU 비중이 높고 현금성 자산이 매우 낮은 구조입니다.
+      마이너스통장이 순자산 대비 60%대로 신규 매수보다 <span style="color:var(--accent);">유동성 확보와 고집중 자산 관리</span>가 우선순위입니다.
+    </div>
+  </section>
+
+  <!-- KPI GRID (TOP 5) -->
+  <div class="grid-5">
+    <div class="kpi kpi-primary">
+      <div class="kpi-label">총자산 (KRW)</div>
+      <div class="kpi-value" id="kpi-total">—</div>
+      <div class="kpi-sub">총자산 기준</div>
+    </div>
+    <div class="kpi kpi-primary">
+      <div class="kpi-label">순자산 (KRW)</div>
+      <div class="kpi-value" id="kpi-net">—</div>
+      <div class="kpi-sub">총자산 − 총부채</div>
+    </div>
+    <div class="kpi kpi-primary">
+      <div class="kpi-label">총부채 (KRW)</div>
+      <div class="kpi-value" id="kpi-debt">—</div>
+      <div class="kpi-sub">마이너스통장</div>
+    </div>
+    <div class="kpi kpi-primary">
+      <div class="kpi-label">투자자산 (KRW)</div>
+      <div class="kpi-value" id="kpi-inv">—</div>
+      <div class="kpi-sub">주식/ETF + 비트코인</div>
+    </div>
+    <div class="kpi kpi-primary">
+      <div class="kpi-label">부채비율</div>
+      <div class="kpi-value" id="kpi-ratio">—</div>
+      <div class="kpi-sub">총자산 기준</div>
+    </div>
+  </div>
+
+  <!-- KPI GRID (SUB 5) -->
+  <div class="grid-5">
+    <div class="kpi"><div class="kpi-label">현금성 자산</div><div class="kpi-value kpi-value-sm" id="sub-cash">—</div></div>
+    <div class="kpi"><div class="kpi-label">부동산 + 보증금</div><div class="kpi-value kpi-value-sm" id="sub-re">—</div></div>
+    <div class="kpi"><div class="kpi-label">비트코인</div><div class="kpi-value kpi-value-sm" id="sub-btc">—</div></div>
+    <div class="kpi"><div class="kpi-label">주식/ETF (통합)</div><div class="kpi-value kpi-value-sm" id="sub-stock">—</div></div>
+    <div class="kpi"><div class="kpi-label">퇴직연금/예금</div><div class="kpi-value kpi-value-sm" id="sub-ret">—</div></div>
+  </div>
+
+  <!-- RISK STRIP -->
+  <div class="section-h"><h2>핵심 리스크 비율 <span class="meta">(순자산 기준)</span></h2></div>
+  <div class="risk-strip" id="risk-strip"></div>
+
+  <!-- TOP 3 RISKS / NEXT 3 ACTIONS -->
+  <div class="section-h"><h2>Risk Focus &amp; Next Actions</h2></div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title-row">
+        <h3>Top 3 Risks</h3>
+        <span class="card-sub">우선순위 — Risk_Monitor 기반</span>
+      </div>
+      <div id="top-risks"></div>
+    </div>
+    <div class="card">
+      <div class="card-title-row">
+        <h3>Next 3 Actions</h3>
+        <span class="card-sub">실무 액션 아이템</span>
+      </div>
+      <div id="next-actions"></div>
+    </div>
+  </div>
+
+  <!-- ASSET ALLOCATION -->
+  <div class="section-h"><h2>자산 배분 <span class="meta">(총자산 기준)</span></h2></div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title-row">
+        <h3>자산군별 비중</h3>
+        <span class="card-sub">5% 미만은 '기타'로 통합</span>
+      </div>
+      <div class="chart-wrap"><canvas id="chart-asset-group"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title-row">
+        <h3>투자자산 비중</h3>
+        <span class="card-sub">투자자산 합계 기준</span>
+      </div>
+      <div class="chart-wrap"><canvas id="chart-inv-group"></canvas></div>
+    </div>
+  </div>
+
+  <!-- TOP 10 BAR -->
+  <div class="section-h"><h2>투자자산 Top 10 <span class="meta">(통합 노출 · 순자산 비중)</span></h2></div>
+  <div class="card">
+    <div class="chart-wrap tall"><canvas id="chart-top10"></canvas></div>
+  </div>
+
+  <!-- LOSS / GAIN -->
+  <div class="section-h"><h2>손익 기여도 (평가) <span class="meta">(통합 기준 · 수익 Top 5 · 손실 Top 5)</span></h2></div>
+  <div class="card">
+    <div class="chart-wrap tall"><canvas id="chart-pnl"></canvas></div>
+  </div>
+
+  <!-- REALIZED P&L -->
+  <div class="section-h"><h2>실현 손익 (Realized P&amp;L) <span class="meta">YTD 누적 · 매매차익 + 배당 + 이자</span></h2></div>
+  <div class="grid-5">
+    <div class="kpi kpi-primary">
+      <div class="kpi-label">YTD 순 실현손익</div>
+      <div class="kpi-value kpi-value-sm" id="rp-net">—</div>
+      <div class="kpi-sub">매매차익+배당−비용</div>
+    </div>
+    <div class="kpi kpi-primary">
+      <div class="kpi-label">YTD 매매차익</div>
+      <div class="kpi-value kpi-value-sm" id="rp-gain">—</div>
+      <div class="kpi-sub">Capital Gains</div>
+    </div>
+    <div class="kpi kpi-primary">
+      <div class="kpi-label">YTD 배당/이자</div>
+      <div class="kpi-value kpi-value-sm" id="rp-inc">—</div>
+      <div class="kpi-sub">Income</div>
+    </div>
+    <div class="kpi kpi-primary">
+      <div class="kpi-label">이번 달 실현손익</div>
+      <div class="kpi-value kpi-value-sm" id="rp-mtd">—</div>
+      <div class="kpi-sub">MTD</div>
+    </div>
+    <div class="kpi kpi-primary">
+      <div class="kpi-label">해외주식 양도세 추정</div>
+      <div class="kpi-value kpi-value-sm" id="rp-tax">—</div>
+      <div class="kpi-sub">(공제 후 22%)</div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-top:14px;">
+    <div class="card">
+      <div class="card-title-row">
+        <h3>월별 실현손익</h3>
+        <span class="card-sub">매매차익 + 배당이자 − 비용 (KRW)</span>
+      </div>
+      <div class="chart-wrap"><canvas id="chart-realized-monthly"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title-row">
+        <h3>최근 실현 거래</h3>
+        <span class="card-sub">최근 5건 — Realized_PnL 시트 기반</span>
+      </div>
+      <div id="rp-recent"></div>
+    </div>
+  </div>
+
+  <!-- CASH FLOW & NET WORTH BRIDGE -->
+  <div class="section-h"><h2>Cash Flow &amp; Net Worth Bridge <span class="meta" id="cf-asof">기준월: —</span></h2></div>
+  <div class="grid-3">
+    <div class="kpi kpi-primary">
+      <div class="kpi-label">이번 달 순자산 증감</div>
+      <div class="kpi-value kpi-value-sm" id="cf-delta">—</div>
+      <div class="kpi-sub" id="cf-delta-pct">ΔNW</div>
+    </div>
+    <div class="kpi kpi-primary">
+      <div class="kpi-label">월 소득</div>
+      <div class="kpi-value kpi-value-sm" id="cf-income">—</div>
+      <div class="kpi-sub">노동소득</div>
+    </div>
+    <div class="kpi kpi-primary">
+      <div class="kpi-label">투자 평가손익</div>
+      <div class="kpi-value kpi-value-sm" id="cf-capgain">—</div>
+      <div class="kpi-sub">자본소득 (주식+BTC)</div>
+    </div>
+    <div class="kpi kpi-primary">
+      <div class="kpi-label">기타 순유출입</div>
+      <div class="kpi-value kpi-value-sm" id="cf-other">—</div>
+      <div class="kpi-sub">생활비+신규투자 등 자동 역산</div>
+    </div>
+    <div class="kpi kpi-primary">
+      <div class="kpi-label">부채 증감 효과</div>
+      <div class="kpi-value kpi-value-sm" id="cf-debt">—</div>
+      <div class="kpi-sub">(+) 감소 / (-) 증가</div>
+    </div>
+    <div class="kpi kpi-primary">
+      <div class="kpi-label">한 줄 평가</div>
+      <div class="kpi-value kpi-value-sm" id="cf-summary" style="font-size:0.95rem;line-height:1.4;">—</div>
+      <div class="kpi-sub">자본 vs 노동 비교</div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-top:14px;">
+    <div class="card">
+      <div class="card-title-row">
+        <h3>Net Worth Bridge — 변동 항목별</h3>
+        <span class="card-sub">전월 NW → 이번 달 NW</span>
+      </div>
+      <div class="chart-wrap tall"><canvas id="chart-bridge"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title-row">
+        <h3>월별 총자산 / 부채 / 순자산</h3>
+        <span class="card-sub">Monthly_Snapshot 기반</span>
+      </div>
+      <div class="chart-wrap tall"><canvas id="chart-nw-trend"></canvas></div>
+    </div>
+  </div>
+
+  <!-- SINGLE STOCK CONCENTRATION -->
+  <div class="section-h"><h2>단일 종목 집중도 Top 5 <span class="meta">(순자산 기준)</span></h2></div>
+  <div class="card tbl-card" style="padding:0;">
+    <table class="tbl" id="tbl-conc"></table>
+  </div>
+
+  <!-- RISK MONITOR FULL -->
+  <div class="section-h"><h2>Risk Monitor — 전체</h2></div>
+  <div class="card tbl-card" style="padding:0;">
+    <table class="tbl" id="tbl-risk"></table>
+  </div>
+
+  <!-- CONSOLIDATED HOLDINGS FULL -->
+  <div class="section-h"><h2>Consolidated Holdings — 통합 보유 전체</h2></div>
+  <div class="card tbl-card" style="padding:0;">
+    <table class="tbl" id="tbl-cons"></table>
+  </div>
+  <div style="margin-top:10px;font-size:0.8rem;color:var(--text-3);line-height:1.6;">
+    <div>• 동일 티커는 계좌(Asset_Master 의 B열)가 달라도 합산됩니다. 예: TIGER 미국S&amp;P500 → 주식계좌(20.1M) + 기타투자(8.7M) = 28.8M</div>
+    <div>• Dashboard 의 '단일 종목 집중도 Top 5' 도 본 시트(통합 기준)와 일치합니다.</div>
+  </div>
+
+  <footer class="footer">
+    <span>Personal Wealth Dashboard · Alpha Design System v1.0</span>
+    <span>마지막 갱신: <span id="footer-asof">2026-05-05</span></span>
+  </footer>
+
+</div>
+
+<script>
+// ───── 임베드 데이터 (빌드 시점 스냅샷) ─────
+const SNAPSHOT = {"asof": "2026-05-05", "kpi": {"총자산": 236566987, "순자산": 147652872, "총부채": 88914115, "투자자산": 102884987, "부채비율": 0.375851745535399}, "subKpi": {"현금성 자산": 10311183, "부동산+보증금": 117600000, "비트코인": 20407165, "주식/ETF (통합)": 82477822, "퇴직연금/예금": 5770817}, "riskRatios": {"부채/순자산": 0.602183444152715, "위험자산/순자산": 0.696803154631493, "레버리지/순자산": 0.0244856463069679, "CRDU/순자산": 0, "비트코인/순자산": 0.138210416929784}, "assetGroup": [{"name": "현금", "value": 10311183, "pct": 0.0435867368087163}, {"name": "부동산", "value": 97600000, "pct": 0.412568132340461}, {"name": "보증금", "value": 20000000, "pct": 0.0845426500697665}, {"name": "주식/ETF", "value": 82477822, "pct": 0.348644682193124}, {"name": "암호자산", "value": 20407165, "pct": 0.0862637904755493}, {"name": "퇴직연금/예금", "value": 5770817, "pct": 0.024394008112383}], "invGroup": [{"name": "국내 S&P500 ETF (TIGER)", "value": 28950060, "pct": 0.28138274440371}, {"name": "국내 반도체 ETF (TIGER 2X + SOL AI)", "value": 26924450, "pct": 0.261694643553777}, {"name": "NASDAQ100 ETF (국내+해외)", "value": 5997576, "pct": 0.0582939860798155}, {"name": "레버리지 ETF (해외 — TSLL/QLD/TQQQ/NFXL)", "value": 8492880, "pct": 0.0825473205337529}, {"name": "개별주 (해외 — 모든 단일종목)", "value": 8595686, "pct": 0.0835465528124137}, {"name": "비트코인", "value": 20407165, "pct": 0.19834929852302}], "consolidated": [{"name": "비트코인", "ticker": "BTC", "assetClass": "암호자산", "subClass": "비트코인", "accountCount": 1, "value": 20407165, "cost": 18075888, "pnl": 2331277, "ret": 0.128971644435947, "totalAssetPct": 0.0862637904755493, "netWorthPct": 0.138210416929784, "investmentPct": 0.19834929852302, "highVol": "Y", "leverage": "N", "concentration": "Y", "memo": "절반 매도 후"}, {"name": "TIGER 미국S&P500", "ticker": "360750", "assetClass": "주식/ETF", "subClass": "S&P500 ETF (국내상장)", "accountCount": 2, "value": 28950060, "cost": 24140460, "pnl": 4809600, "ret": 0.199233983113826, "totalAssetPct": 0.122375739603937, "netWorthPct": 0.196068383959372, "investmentPct": 0.28138274440371, "highVol": "N", "leverage": "N", "concentration": "N", "memo": "토스 + 미래에셋 합산"}, {"name": "TIGER 반도체TOP10 레버리지", "ticker": "TIGER_SEMI_2X", "assetClass": "주식/ETF", "subClass": "레버리지 ETF (반도체 2X)", "accountCount": 1, "value": 16630250, "cost": 16466235, "pnl": 164015, "ret": 0.00996068621636944, "totalAssetPct": 0.0702982703161367, "netWorthPct": 0.112630724853087, "investmentPct": 0.161639229249259, "highVol": "Y", "leverage": "Y", "concentration": "N", "memo": "신규 매수"}, {"name": "SOL AI반도체TOP2 플러스", "ticker": "SOL_AI_SEMI", "assetClass": "주식/ETF", "subClass": "액티브 ETF (AI 반도체)", "accountCount": 1, "value": 10294200, "cost": 10138025, "pnl": 156175, "ret": 0.0154048742235297, "totalAssetPct": 0.0435149474174095, "netWorthPct": 0.0697189283253495, "investmentPct": 0.100055414304519, "highVol": "N", "leverage": "N", "concentration": "N", "memo": "신규 매수"}, {"name": "TIGER 미국나스닥100", "ticker": "133690", "assetClass": "주식/ETF", "subClass": "NASDAQ100 ETF (국내상장)", "accountCount": 2, "value": 5945845, "cost": 5375530, "pnl": 570315, "ret": 0.106094654852638, "totalAssetPct": 0.0251338746602035, "netWorthPct": 0.0402690778679876, "investmentPct": 0.057791181914617, "highVol": "N", "leverage": "N", "concentration": "N", "memo": "토스 + 미래에셋 합산"}, {"name": "NFXL (Direxion NFLX 2X)", "ticker": "NFXL", "assetClass": "주식/ETF", "subClass": "레버리지 ETF (NFLX 2X)", "accountCount": 1, "value": 4877504, "cost": 4937765, "pnl": -60261, "ret": -0.0122041044885692, "totalAssetPct": 0.0206178556942943, "netWorthPct": 0.0330335870473281, "investmentPct": 0.0474073442804634, "highVol": "Y", "leverage": "Y", "concentration": "N", "memo": "추가 매수"}, {"name": "샤크닌자", "ticker": "SN", "assetClass": "주식/ETF", "subClass": "개별주 — 가전/리테일", "accountCount": 1, "value": 4375436, "cost": 4505615, "pnl": -130179, "ret": -0.0288926151035985, "totalAssetPct": 0.0184955477325329, "netWorthPct": 0.0296332603676006, "investmentPct": 0.042527448635436, "highVol": "N", "leverage": "N", "concentration": "N", "memo": "추가 매수"}, {"name": "TSLL (TSLA 2X)", "ticker": "TSLL", "assetClass": "주식/ETF", "subClass": "레버리지 ETF (TSLA 2X)", "accountCount": 1, "value": 1942757, "cost": 2007461, "pnl": -64704, "ret": -0.0322317594214782, "totalAssetPct": 0.00821229126107947, "netWorthPct": 0.0131575970970615, "investmentPct": 0.0188828035717203, "highVol": "Y", "leverage": "Y", "concentration": "N", "memo": null}, {"name": "JEPQ", "ticker": "JEPQ", "assetClass": "주식/ETF", "subClass": "인컴/배당 ETF", "accountCount": 1, "value": 1745534, "cost": 1751509, "pnl": -5975, "ret": -0.00341134416094922, "totalAssetPct": 0.00737860350734399, "netWorthPct": 0.0118218763804337, "investmentPct": 0.016965876663813, "highVol": "N", "leverage": "N", "concentration": "N", "memo": null}, {"name": "SCHD", "ticker": "SCHD", "assetClass": "주식/ETF", "subClass": "배당주 ETF", "accountCount": 1, "value": 1625310, "cost": 1638795, "pnl": -13485, "ret": -0.0082286069947736, "totalAssetPct": 0.00687040072924461, "netWorthPct": 0.0110076423030905, "investmentPct": 0.0157973485480442, "highVol": "N", "leverage": "N", "concentration": "N", "memo": null}, {"name": "ProShares Ultra QQQ (QLD)", "ticker": "QLD", "assetClass": "주식/ETF", "subClass": "레버리지 ETF (NASDAQ 2X)", "accountCount": 1, "value": 1472746, "cost": 1097377, "pnl": 375369, "ret": 0.342060203558121, "totalAssetPct": 0.00622549248598242, "netWorthPct": 0.00997438099273816, "investmentPct": 0.014314488857349, "highVol": "Y", "leverage": "Y", "concentration": "N", "memo": null}, {"name": "랄프 로렌", "ticker": "RL", "assetClass": "주식/ETF", "subClass": "개별주 — 패션/리테일", "accountCount": 1, "value": 539059, "cost": 534665, "pnl": 4394, "ret": 0.00821823010670233, "totalAssetPct": 0.00227867382019791, "netWorthPct": 0.00365085346934532, "investmentPct": 0.00523943303798056, "highVol": "N", "leverage": "N", "concentration": "N", "memo": "대부분 매도"}, {"name": "맥도날드", "ticker": "MCD", "assetClass": "주식/ETF", "subClass": "개별주 — 음식/리테일", "accountCount": 1, "value": 3354253, "cost": 3396866, "pnl": -42613, "ret": -0.0125447986467526, "totalAssetPct": 0.0141788718812232, "netWorthPct": 0.0227171537848583, "investmentPct": 0.0326019674765571, "highVol": "N", "leverage": "N", "concentration": "N", "memo": null}, {"name": "트랜스다임 그룹", "ticker": "TDG", "assetClass": "주식/ETF", "subClass": "개별주 — 항공/방산", "accountCount": 1, "value": 306123, "cost": 305239, "pnl": 884, "ret": 0.00289609125963589, "totalAssetPct": 0.00129402248336536, "netWorthPct": 0.00207326139920936, "investmentPct": 0.00297539037449652, "highVol": "N", "leverage": "N", "concentration": "N", "memo": "대부분 매도"}, {"name": "ProShares UltraPro (TQQQ)", "ticker": "TQQQ", "assetClass": "주식/ETF", "subClass": "레버리지 ETF (NASDAQ 3X)", "accountCount": 1, "value": 199873, "cost": 131657, "pnl": 68216, "ret": 0.518134242767191, "totalAssetPct": 0.000844889654869722, "netWorthPct": 0.00135366821716817, "investmentPct": 0.00194268382422015, "highVol": "Y", "leverage": "Y", "concentration": "N", "memo": null}, {"name": "iShares Silver Trust (SLV)", "ticker": "SLV", "assetClass": "주식/ETF", "subClass": "원자재 ETF (은)", "accountCount": 1, "value": 104161, "cost": 100019, "pnl": 4142, "ret": 0.041412131694978, "totalAssetPct": 0.000440302348695847, "netWorthPct": 0.000705445133502043, "investmentPct": 0.00101240232454906, "highVol": "N", "leverage": "N", "concentration": "N", "memo": null}, {"name": "Invesco QQQ", "ticker": "QQQ", "assetClass": "주식/ETF", "subClass": "NASDAQ100 ETF (해외)", "accountCount": 1, "value": 51731, "cost": 45893, "pnl": 5838, "ret": 0.127208942540257, "totalAssetPct": 0.000218673791537955, "netWorthPct": 0.000350355528472213, "investmentPct": 0.000502804165198563, "highVol": "N", "leverage": "N", "concentration": "N", "memo": null}, {"name": "SPDR Gold Shares (GLD)", "ticker": "GLD", "assetClass": "주식/ETF", "subClass": "원자재 ETF (금)", "accountCount": 1, "value": 27305, "cost": 29058, "pnl": -1753, "ret": -0.0603276206208273, "totalAssetPct": 0.000115421853007749, "netWorthPct": 0.000184926981982443, "investmentPct": 0.000265393433932202, "highVol": "N", "leverage": "N", "concentration": "N", "memo": null}, {"name": "Netflix", "ticker": "NFLX", "assetClass": "주식/ETF", "subClass": "개별주 — 미디어", "accountCount": 1, "value": 20815, "cost": 19560, "pnl": 1255, "ret": 0.064161554192229, "totalAssetPct": 8.79877630601095e-05, "netWorthPct": 0.000140972537262939, "investmentPct": 0.000202313287943556, "highVol": "N", "leverage": "N", "concentration": "N", "memo": "잔여"}, {"name": "NASA ETF", "ticker": "NASA", "assetClass": "주식/ETF", "subClass": "액티브 ETF", "accountCount": 1, "value": 14860, "cost": 14486, "pnl": 374, "ret": 0.0258180312025404, "totalAssetPct": 6.28151890018365e-05, "netWorthPct": 0.000100641455860066, "investmentPct": 0.000144433123172772, "highVol": "N", "leverage": "N", "concentration": "N", "memo": "대부분 매도"}], "top5Concentration": [{"name": "TIGER 미국S&P500", "ticker": "360750", "value": 28950060, "pct": 0.196068383959372, "status": "주의"}, {"name": "비트코인", "ticker": "BTC", "value": 20407165, "pct": 0.138210416929784, "status": "정상"}, {"name": "TIGER 반도체TOP10 레버리지", "ticker": "TIGER_SEMI_2X", "value": 16630250, "pct": 0.112630724853087, "status": "정상"}, {"name": "SOL AI반도체TOP2 플러스", "ticker": "SOL_AI_SEMI", "value": 10294200, "pct": 0.0697189283253495, "status": "정상"}, {"name": "TIGER 미국나스닥100", "ticker": "133690", "value": 5945845, "pct": 0.0402690778679876, "status": "정상"}], "riskMonitor": [{"category": "부채", "item": "마이너스통장 / 순자산", "current": 0.602183444152715, "threshold": 0.5, "status": "주의", "interpretation": "순자산 대비 60%대 — 자산성장률보다 부채 부담이 더 큰 구간", "action": "추가 차입 자제 / 일부 상환 (예금→마통)"}, {"category": "부채", "item": "마이너스통장 / 총자산", "current": 0.375851745535399, "threshold": 0.4, "status": "정상", "interpretation": "총자산 대비 약 38% — 안정 라인 인접", "action": "자산 매각 없이도 부채비율 관리 가능"}, {"category": "유동성", "item": "현금성 자산 / 월 생활비(추정 ₩3M)", "current": 3.437061, "threshold": 1, "status": "정상", "interpretation": "현금이 약 ₩43만원 — 1주일 생활비도 안 됨", "action": "비상자금 우선 ₩5M (1.5~2개월) 라인 마련"}, {"category": "유동성", "item": "현금성 자산 / 투자자산", "current": 0.100220482119515, "threshold": 0.05, "status": "정상", "interpretation": "약 0.4% — 시장 급락 시 추가매수 여력 없음", "action": "분할매도 / 신규 입금으로 5% 라인 회복"}, {"category": "암호자산", "item": "비트코인 / 순자산", "current": 0.138210416929784, "threshold": 0.2, "status": "정상", "interpretation": "약 30% — 단일자산 1위, 사이클 변동성 큼", "action": "30% 초과분 분할 차익실현 룰 정의"}, {"category": "단일종목", "item": "CRDU / 순자산", "current": 0, "threshold": 0.15, "status": "정상", "interpretation": "약 17% — 주식 내 1위, 한 종목 이벤트로 순자산 5%+ 변동 가능", "action": "분할매도 임계 정의 (예: +15% 추가 시 1/3 매도)"}, {"category": "레버리지", "item": "레버리지 ETF / 순자산", "current": 0.0244856463069679, "threshold": 0.1, "status": "정상", "interpretation": "약 2% — 임계 미만, 안전권", "action": "추가 매수 시 10% 라인 넘기지 말 것"}, {"category": "위험자산", "item": "고위험자산 / 순자산", "current": 0.308360375137166, "threshold": 0.5, "status": "정상", "interpretation": "고위험 = BTC + CRDU + 레버리지 — 순자산 대비 50%대", "action": "분할매도로 순자산 30% 라인 목표"}, {"category": "위험자산", "item": "주식+비트코인 / 순자산", "current": 0.696803154631493, "threshold": 0.7, "status": "정상", "interpretation": "위험자산 비중 — 순자산 대비 75%대 (높음)", "action": "현금/예금 비중 회복으로 60% 이하 권장"}, {"category": "집중도", "item": "단일 종목 Top 1 / 순자산", "current": 0.196068383959372, "threshold": 0.15, "status": "주의", "interpretation": "Top 1 (BTC) 약 30% — 단일 종목 위험 최대", "action": "통합기준으로 Top 1 비중 모니터링"}, {"category": "환노출", "item": "USD 자산 / 총자산", "current": 0.0873218501954375, "threshold": 0.3, "status": "정상", "interpretation": "USD 자산 약 13% — 환율 -10% 시 순자산 약 -2~3%", "action": "원화 강세 위험 모니터링"}, {"category": "해외자산", "item": "해외 자산(USD+BTC) / 총자산", "current": 0.173585640670987, "threshold": 0.3, "status": "정상", "interpretation": "해외 익스포저 약 32% — 글로벌 매크로 영향 큼", "action": "글로벌 매크로 헤지 도구(원화 자산) 검토"}], "pnl": [{"name": "TIGER 미국S&P500", "ticker": "360750", "assetClass": "주식/ETF", "subClass": "S&P500 ETF (국내상장)", "accountCount": 2, "value": 28950060, "cost": 24140460, "pnl": 4809600, "ret": 0.199233983113826, "totalAssetPct": 0.122375739603937, "netWorthPct": 0.196068383959372, "investmentPct": 0.28138274440371, "highVol": "N", "leverage": "N", "concentration": "N", "memo": "토스 + 미래에셋 합산"}, {"name": "비트코인", "ticker": "BTC", "assetClass": "암호자산", "subClass": "비트코인", "accountCount": 1, "value": 20407165, "cost": 18075888, "pnl": 2331277, "ret": 0.128971644435947, "totalAssetPct": 0.0862637904755493, "netWorthPct": 0.138210416929784, "investmentPct": 0.19834929852302, "highVol": "Y", "leverage": "N", "concentration": "Y", "memo": "절반 매도 후"}, {"name": "TIGER 미국나스닥100", "ticker": "133690", "assetClass": "주식/ETF", "subClass": "NASDAQ100 ETF (국내상장)", "accountCount": 2, "value": 5945845, "cost": 5375530, "pnl": 570315, "ret": 0.106094654852638, "totalAssetPct": 0.0251338746602035, "netWorthPct": 0.0402690778679876, "investmentPct": 0.057791181914617, "highVol": "N", "leverage": "N", "concentration": "N", "memo": "토스 + 미래에셋 합산"}, {"name": "ProShares Ultra QQQ (QLD)", "ticker": "QLD", "assetClass": "주식/ETF", "subClass": "레버리지 ETF (NASDAQ 2X)", "accountCount": 1, "value": 1472746, "cost": 1097377, "pnl": 375369, "ret": 0.342060203558121, "totalAssetPct": 0.00622549248598242, "netWorthPct": 0.00997438099273816, "investmentPct": 0.014314488857349, "highVol": "Y", "leverage": "Y", "concentration": "N", "memo": null}, {"name": "TIGER 반도체TOP10 레버리지", "ticker": "TIGER_SEMI_2X", "assetClass": "주식/ETF", "subClass": "레버리지 ETF (반도체 2X)", "accountCount": 1, "value": 16630250, "cost": 16466235, "pnl": 164015, "ret": 0.00996068621636944, "totalAssetPct": 0.0702982703161367, "netWorthPct": 0.112630724853087, "investmentPct": 0.161639229249259, "highVol": "Y", "leverage": "Y", "concentration": "N", "memo": "신규 매수"}, {"name": "샤크닌자", "ticker": "SN", "assetClass": "주식/ETF", "subClass": "개별주 — 가전/리테일", "accountCount": 1, "value": 4375436, "cost": 4505615, "pnl": -130179, "ret": -0.0288926151035985, "totalAssetPct": 0.0184955477325329, "netWorthPct": 0.0296332603676006, "investmentPct": 0.042527448635436, "highVol": "N", "leverage": "N", "concentration": "N", "memo": "추가 매수"}, {"name": "TSLL (TSLA 2X)", "ticker": "TSLL", "assetClass": "주식/ETF", "subClass": "레버리지 ETF (TSLA 2X)", "accountCount": 1, "value": 1942757, "cost": 2007461, "pnl": -64704, "ret": -0.0322317594214782, "totalAssetPct": 0.00821229126107947, "netWorthPct": 0.0131575970970615, "investmentPct": 0.0188828035717203, "highVol": "Y", "leverage": "Y", "concentration": "N", "memo": null}, {"name": "NFXL (Direxion NFLX 2X)", "ticker": "NFXL", "assetClass": "주식/ETF", "subClass": "레버리지 ETF (NFLX 2X)", "accountCount": 1, "value": 4877504, "cost": 4937765, "pnl": -60261, "ret": -0.0122041044885692, "totalAssetPct": 0.0206178556942943, "netWorthPct": 0.0330335870473281, "investmentPct": 0.0474073442804634, "highVol": "Y", "leverage": "Y", "concentration": "N", "memo": "추가 매수"}, {"name": "맥도날드", "ticker": "MCD", "assetClass": "주식/ETF", "subClass": "개별주 — 음식/리테일", "accountCount": 1, "value": 3354253, "cost": 3396866, "pnl": -42613, "ret": -0.0125447986467526, "totalAssetPct": 0.0141788718812232, "netWorthPct": 0.0227171537848583, "investmentPct": 0.0326019674765571, "highVol": "N", "leverage": "N", "concentration": "N", "memo": null}, {"name": "SCHD", "ticker": "SCHD", "assetClass": "주식/ETF", "subClass": "배당주 ETF", "accountCount": 1, "value": 1625310, "cost": 1638795, "pnl": -13485, "ret": -0.0082286069947736, "totalAssetPct": 0.00687040072924461, "netWorthPct": 0.0110076423030905, "investmentPct": 0.0157973485480442, "highVol": "N", "leverage": "N", "concentration": "N", "memo": null}], "monthlySnap": [{"month": "2026-05", "totalAsset": 236566987, "netWorth": 147652872}], "realizedKpi": {"ytdNet": 22615324, "ytdGain": 22593843, "ytdInc": 25190, "mtd": 20079669, "estTax": 3856596.92}, "realizedMonthly": [{"month": "2026-01", "gain": 2428026, "income": 0, "cost": 0, "net": 2428026, "cumulative": 2428026}, {"month": "2026-02", "gain": -6691, "income": 493, "cost": 76, "net": -6274, "cumulative": 2421752}, {"month": "2026-03", "gain": 97650, "income": 7691, "cost": 1184, "net": 104157, "cumulative": 2525909}, {"month": "2026-04", "gain": 0, "income": 10226, "cost": 1574, "net": 8652, "cumulative": 2534561}, {"month": "2026-05", "gain": 20074858, "income": 5686, "cost": 875, "net": 20079669, "cumulative": 22614230}, {"month": "2026-06", "gain": 0, "income": 0, "cost": 0, "net": 0, "cumulative": 22614230}, {"month": "2026-07", "gain": 0, "income": 0, "cost": 0, "net": 0, "cumulative": 22614230}, {"month": "2026-08", "gain": 0, "income": 0, "cost": 0, "net": 0, "cumulative": 22614230}, {"month": "2026-09", "gain": 0, "income": 0, "cost": 0, "net": 0, "cumulative": 22614230}, {"month": "2026-10", "gain": 0, "income": 0, "cost": 0, "net": 0, "cumulative": 22614230}, {"month": "2026-11", "gain": 0, "income": 0, "cost": 0, "net": 0, "cumulative": 22614230}, {"month": "2026-12", "gain": 0, "income": 1094, "cost": 0, "net": 1094, "cumulative": 22615324}], "realizedRecent": [{"date": "2026-12-31 00:00:00", "type": "이자", "name": "토스증권 계좌이자", "ticker": "TOSS_INT", "qty": null, "krwPnL": 1094, "fee": 0, "tax": 0, "netPnL": 1094, "category": "원천징수 완료", "memo": "26년 연간 누적"}, {"date": "2026-05-07 00:00:00", "type": "매매차익", "name": "KODEX 반도체레버리지", "ticker": "KODEX_SEMI_2X", "qty": null, "krwPnL": -75, "fee": 0, "tax": 0, "netPnL": -75, "category": "국내 ETF 배당세", "memo": "5/7 매도 -0.05%"}, {"date": "2026-05-07 00:00:00", "type": "매매차익", "name": "SOL AI반도체TOP2플러스", "ticker": "SOL_AI_SEMI", "qty": null, "krwPnL": -17250, "fee": 0, "tax": 0, "netPnL": -17250, "category": "국내 ETF 배당세", "memo": "5/7 매도 -0.6%"}, {"date": "2026-05-07 00:00:00", "type": "매매차익", "name": "NASA ETF", "ticker": "NASA", "qty": null, "krwPnL": 28934, "fee": 0, "tax": 0, "netPnL": 28934, "category": "해외주식 양도세", "memo": "5/7 매도 +2.0% (대량 매도)"}, {"date": "2026-05-07 00:00:00", "type": "매매차익", "name": "트랜스다임 그룹", "ticker": "TDG", "qty": null, "krwPnL": 4374, "fee": 0, "tax": 0, "netPnL": 4374, "category": "해외주식 양도세", "memo": "5/7 매도 +0.2% (대량 매도)"}], "cashflowKpi": {"deltaNW": 0, "deltaPct": 0, "income": 0, "capGain": 0, "other": 0, "debtChg": 0, "asofMonth": "2026-06"}, "bridge": [{"name": "기초 순자산", "value": 147652872}, {"name": "월 소득", "value": 0}, {"name": "보너스/기타수입", "value": 0}, {"name": "투자 평가손익", "value": 0}, {"name": "배당/이자수익", "value": 0}, {"name": "부동산/보증금 변동", "value": 0}, {"name": "부채 증감 효과", "value": 0}, {"name": "기타 순유출입", "value": 0}, {"name": "기말 순자산", "value": 0}], "monthlyAll": [{"month": "2026-05", "totalAsset": 236566987, "totalDebt": 88914115, "netWorth": 147652872, "income": 0, "capGain": 0, "other": 0, "deltaNW": 0}]};
+
+// ───── 포맷터 ─────
+const fmt = {
+  krw: v => v == null ? '—' : (v < 0 ? '-' : '') + '₩' + Math.abs(Math.round(v)).toLocaleString('ko-KR'),
+  krwM: v => v == null ? '—' : (v / 1e6).toFixed(1) + 'M',
+  pct: v => v == null ? '—' : (v * 100).toFixed(2) + '%',
+  pct1: v => v == null ? '—' : (v * 100).toFixed(1) + '%',
+  signed: v => v == null ? '—' : (v >= 0 ? '+' : '') + '₩' + (v < 0 ? '-' + Math.abs(Math.round(v)).toLocaleString('ko-KR') : Math.round(v).toLocaleString('ko-KR')),
+};
+
+// ───── Wealth Evolution ─────
+const FINAL_GOAL_WON = 20 * 100_000_000;  // 20억
+const EVO_CHARS = [
+  { stage: 1, name: '치코몬',                file: '치코몬.png',
+    min: 0,  max: 1,  meaning: '자본 형성 시작 단계' },
+  { stage: 2, name: '꼬마몬',                file: '꼬마몬.png',
+    min: 1,  max: 2,  meaning: '1억 돌파 후 기초 체력 확보 단계' },
+  { stage: 3, name: '브이몬',                file: '브이몬.png',
+    min: 2,  max: 3,  meaning: '본격적인 포트폴리오 성장 구간' },
+  { stage: 4, name: '엑스브이몬',            file: '엑스브이몬.png',
+    min: 3,  max: 5,  meaning: '자산 증가 속도 체감 구간' },
+  { stage: 5, name: '파일드라몬',            file: '파일드라몬.png',
+    min: 5,  max: 8,  meaning: '1차 자산 목표 달성 후 복리 가속 구간' },
+  { stage: 6, name: '황제드라몬 드래곤모드', file: '황제드라몬 드래곤모드.png',
+    min: 8,  max: 12, meaning: '금융자산 10억 가시권 진입 구간' },
+  { stage: 7, name: '황제드라몬 파이터모드', file: '황제드라몬 파이터모드.png',
+    min: 12, max: 20, meaning: '서울 자가 선택권 확대 및 최종 목표 직전 구간' },
+  { stage: 8, name: '황제드라몬 팔라딘모드', file: '황제드라몬 팔라딘모드.png',
+    min: 20, max: 20, meaning: '서울 자가 + 금융자산 10억원 최종 목표 달성' },
+];
+
+function fmtEok(won) {
+  // 0.6억 형식 (소수 1자리)
+  return (won / 100_000_000).toFixed(1) + '억';
+}
+function fmtRange(c) {
+  if (c.stage === 8) return `${c.min}억원 이상`;
+  return `${c.min}억원 이상 ~ ${c.max}억원 미만`;
+}
+function fmtCondition(c) {
+  if (c.stage === 1) return '시작 단계';
+  return `순자산 ${c.min}억원 달성`;
+}
+
+function imagePath(filename) {
+  // 한글/공백 포함 파일명 → URL 인코딩
+  return 'digimon%20image/' + encodeURIComponent(filename);
+}
+
+function renderEvolution(D) {
+  const nw = D.kpi['순자산'] || 0;
+  const nwEok = nw / 100_000_000;
+
+  // 현재 stage 인덱스
+  let curIdx = EVO_CHARS.findIndex(c => nwEok >= c.min && nwEok < c.max);
+  if (curIdx === -1) curIdx = nwEok >= EVO_CHARS[EVO_CHARS.length - 1].min
+    ? EVO_CHARS.length - 1 : 0;
+  const cur = EVO_CHARS[curIdx];
+  const next = EVO_CHARS[curIdx + 1] || null;
+
+  // 진행률 — Stage 8 (팔라딘) 은 최종 단계라 항상 100%
+  const stageStart = cur.min * 100_000_000;
+  const stageEnd   = cur.max * 100_000_000;
+  const stagePct = cur.stage === 8
+    ? 1
+    : Math.min(1, Math.max(0, (nw - stageStart) / (stageEnd - stageStart)));
+  const overallPct = Math.min(1, nw / FINAL_GOAL_WON);
+  const nextNeed = next ? Math.max(0, next.min * 100_000_000 - nw) : 0;
+  const finalRemaining = Math.max(0, FINAL_GOAL_WON - nw);
+
+  // 캐릭터 카드
+  const imgEl = document.getElementById('evo-img');
+  imgEl.src = imagePath(cur.file);
+  imgEl.alt = cur.name;
+  imgEl.style.display = '';  // reset (in case prev errored)
+  document.getElementById('evo-img-ph-name').textContent = cur.name;
+  document.querySelector('.evo-img-ph').style.display = 'none';
+  document.getElementById('evo-char-name').textContent = cur.name;
+  document.getElementById('evo-stage-pill').textContent = `Stage ${cur.stage} / 8`;
+  document.getElementById('evo-range').textContent = fmtRange(cur);
+  document.getElementById('evo-meaning').textContent = cur.meaning;
+
+  // 현재 구간 EXP 바
+  document.getElementById('evo-stage-pct').textContent = (stagePct * 100).toFixed(1) + '%';
+  document.getElementById('evo-stage-bar').style.width = (stagePct * 100).toFixed(1) + '%';
+  document.getElementById('evo-stage-from').textContent = cur.stage === 8
+    ? `최종 단계 달성 (현재 ${fmtEok(nw)})`
+    : `${cur.min}억원 (현재 ${fmtEok(nw)})`;
+  document.getElementById('evo-stage-to').textContent = cur.stage === 8
+    ? `최종 목표 도달 ✓`
+    : `${cur.max}억원 = 다음 진화`;
+
+  // 전체 목표
+  document.getElementById('evo-overall-pct').textContent = (overallPct * 100).toFixed(1) + '%';
+  document.getElementById('evo-overall-bar').style.width = (overallPct * 100).toFixed(1) + '%';
+  document.getElementById('evo-overall-meta').textContent = `현재 ${fmtEok(nw)}`;
+
+  // 다음 진화 카드
+  document.getElementById('evo-next-name').textContent = next ? next.name : '최종 진화 완료';
+  document.getElementById('evo-next-meta').textContent = next
+    ? `남은 금액 약 ${fmtEok(nextNeed)} (순자산 ${next.min}억원 도달 시)`
+    : '✓ 모든 단계 달성';
+
+  // 최종 목표
+  document.getElementById('evo-final-meta').textContent = finalRemaining > 0
+    ? `남은 금액 약 ${fmtEok(finalRemaining)}`
+    : '✓ 목표 달성';
+
+  // 진화 단계 테이블
+  const tbody = EVO_CHARS.map((c, idx) => {
+    const isCur = idx === curIdx;
+    const trClass = isCur ? 'style="background:rgba(59,130,246,0.08);"' : '';
+    return `<tr ${trClass}>
+      <td class="center"><strong>Stage ${c.stage} / 8</strong></td>
+      <td class="center"><strong>${c.name}</strong></td>
+      <td class="center">${fmtRange(c)}</td>
+      <td class="center muted">${fmtCondition(c)}</td>
+      <td class="wrap muted">${c.meaning}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('evo-table-body').innerHTML = tbody;
+}
+
+// 상태 → pill class
+function pillClass(status) {
+  if (!status) return 'muted';
+  const s = String(status);
+  if (s === '위험' || s === '과도' || s === '고집중' || s === '고위험') return 'danger';
+  if (s === '주의') return 'warn';
+  if (s === '정상') return 'good';
+  return 'muted';
+}
+
+// ───── 렌더 함수 ─────
+function renderKPIs(D) {
+  document.getElementById('kpi-total').textContent = fmt.krw(D.kpi['총자산']);
+  document.getElementById('kpi-net').textContent   = fmt.krw(D.kpi['순자산']);
+  document.getElementById('kpi-debt').textContent  = fmt.krw(D.kpi['총부채']);
+  document.getElementById('kpi-inv').textContent   = fmt.krw(D.kpi['투자자산']);
+  document.getElementById('kpi-ratio').textContent = fmt.pct(D.kpi['부채비율']);
+
+  document.getElementById('sub-cash').textContent  = fmt.krw(D.subKpi['현금성 자산']);
+  document.getElementById('sub-re').textContent    = fmt.krw(D.subKpi['부동산+보증금']);
+  document.getElementById('sub-btc').textContent   = fmt.krw(D.subKpi['비트코인']);
+  document.getElementById('sub-stock').textContent = fmt.krw(D.subKpi['주식/ETF (통합)']);
+  document.getElementById('sub-ret').textContent   = fmt.krw(D.subKpi['퇴직연금/예금']);
+
+  document.getElementById('meta-asof').textContent = D.asof;
+  document.getElementById('footer-asof').textContent = D.asof + ' (xlsx 빌드 시점)';
+}
+
+function renderRiskStrip(D) {
+  const items = [
+    {label: '부채 / 순자산',   val: D.riskRatios['부채/순자산'],     thr: 0.50, gauge: '50%↑ 주의 / 70%↑ 위험'},
+    {label: '위험자산 / 순자산', val: D.riskRatios['위험자산/순자산'], thr: 0.70, gauge: '70%↑ 주의 (주식+BTC)'},
+    {label: '레버리지 / 순자산', val: D.riskRatios['레버리지/순자산'], thr: 0.10, gauge: '10%↑ 주의 / 20%↑ 위험'},
+    {label: 'CRDU / 순자산',    val: D.riskRatios['CRDU/순자산'],     thr: 0.15, gauge: '15%↑ 주의 / 25%↑ 고집중'},
+    {label: '비트코인 / 순자산', val: D.riskRatios['비트코인/순자산'], thr: 0.20, gauge: '20%↑ 주의 / 30%↑ 고집중'},
+  ];
+  const html = items.map(i => {
+    const status = i.val >= i.thr * 1.5 ? '위험' : i.val >= i.thr ? '주의' : '정상';
+    const pcls = pillClass(status);
+    return `<div class="risk-tile">
+      <div class="risk-tile-label">${i.label}</div>
+      <div class="risk-tile-value">${fmt.pct1(i.val)}</div>
+      <div class="risk-tile-status"><span class="pill ${pcls}">${status}</span> <span>${i.gauge}</span></div>
+    </div>`;
+  }).join('');
+  document.getElementById('risk-strip').innerHTML = html;
+}
+
+function renderTopRisksAndActions(D) {
+  // 위험 상태 → 우선순위 정렬
+  const ranked = [...D.riskMonitor].sort((a, b) => {
+    const w = s => s === '위험' ? 0 : s === '주의' ? 1 : 2;
+    return w(a.status) - w(b.status);
+  });
+  const top3 = ranked.slice(0, 3);
+  const html = top3.map((r, i) => {
+    const cls = r.status === '위험' ? 'danger' : r.status === '주의' ? 'warn' : '';
+    return `<div class="list-item">
+      <div class="list-num ${cls}">${i + 1}</div>
+      <div class="list-text"><strong>${r.item}</strong> — 현재 ${fmt.pct1(r.current)} / 임계 ${fmt.pct1(r.threshold)}<br>
+      <span style="color:var(--text-2);font-size:0.86rem">${r.interpretation}</span></div>
+    </div>`;
+  }).join('');
+  document.getElementById('top-risks').innerHTML = html;
+
+  // 권고 액션 (Risk_Monitor 의 권고 액션 중 위험 우선)
+  const actions = top3.map((r, i) => {
+    const cls = r.status === '위험' ? 'danger' : r.status === '주의' ? 'warn' : '';
+    return `<div class="list-item">
+      <div class="list-num ${cls}">${i + 1}</div>
+      <div class="list-text"><strong>${r.action}</strong><br>
+      <span style="color:var(--text-2);font-size:0.86rem">관련: ${r.item}</span></div>
+    </div>`;
+  }).join('');
+  document.getElementById('next-actions').innerHTML = actions;
+}
+
+// ───── Chart.js 글로벌 설정 ─────
+Chart.defaults.color = '#9CA3AF';
+Chart.defaults.font.family = "'Inter', -apple-system, sans-serif";
+Chart.defaults.borderColor = '#1F2937';
+
+const chartColors = [
+  '#3B82F6', '#06B6D4', '#8B5CF6', '#EC4899', '#F59E0B',
+  '#22C55E', '#94A3B8', '#64748B', '#475569', '#334155'
+];
+
+let chartInstances = {};
+
+function destroyChart(id) {
+  if (chartInstances[id]) { chartInstances[id].destroy(); delete chartInstances[id]; }
+}
+
+function renderDonutAssetGroup(D) {
+  destroyChart('asset');
+  const ctx = document.getElementById('chart-asset-group').getContext('2d');
+  chartInstances['asset'] = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: D.assetGroup.map(a => a.name),
+      datasets: [{
+        data: D.assetGroup.map(a => a.value),
+        backgroundColor: chartColors.slice(0, D.assetGroup.length),
+        borderColor: '#111827', borderWidth: 2,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '62%',
+      plugins: {
+        legend: { position: 'right', labels: { boxWidth: 10, padding: 12, font: { size: 12 } } },
+        tooltip: {
+          backgroundColor: '#1F2937', borderColor: '#2D3748', borderWidth: 1, padding: 12,
+          callbacks: {
+            label: ctx => `${ctx.label}: ${fmt.krwM(ctx.raw)} (${fmt.pct1(ctx.raw / ctx.dataset.data.reduce((a,b)=>a+b,0))})`
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderDonutInvGroup(D) {
+  destroyChart('inv');
+  const ctx = document.getElementById('chart-inv-group').getContext('2d');
+  chartInstances['inv'] = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: D.invGroup.map(a => a.name),
+      datasets: [{
+        data: D.invGroup.map(a => a.value),
+        backgroundColor: chartColors.slice(0, D.invGroup.length),
+        borderColor: '#111827', borderWidth: 2,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '62%',
+      plugins: {
+        legend: { position: 'right', labels: { boxWidth: 10, padding: 12, font: { size: 12 } } },
+        tooltip: {
+          backgroundColor: '#1F2937', borderColor: '#2D3748', borderWidth: 1, padding: 12,
+          callbacks: {
+            label: ctx => `${ctx.label}: ${fmt.krwM(ctx.raw)} (${fmt.pct1(ctx.raw / ctx.dataset.data.reduce((a,b)=>a+b,0))})`
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderBarTop10(D) {
+  destroyChart('top10');
+  // 통합 기준 Top 10 (가치 기준)
+  const top = [...D.consolidated].sort((a, b) => (b.value || 0) - (a.value || 0)).slice(0, 10);
+  const ctx = document.getElementById('chart-top10').getContext('2d');
+  chartInstances['top10'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: top.map(t => t.name),
+      datasets: [{
+        label: '순자산 비중',
+        data: top.map(t => (t.netWorthPct || 0) * 100),
+        backgroundColor: top.map((t, i) => i < 3 ? '#3B82F6' : i < 6 ? '#2C5282' : '#5A7A9F'),
+        borderRadius: 4,
+      }],
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1F2937', borderColor: '#2D3748', borderWidth: 1, padding: 12,
+          callbacks: {
+            label: ctx => {
+              const item = top[ctx.dataIndex];
+              return `${fmt.krw(item.value)} / 순자산 ${ctx.raw.toFixed(2)}%`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { grid: { color: '#1F2937' }, ticks: { callback: v => v + '%' } },
+        y: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+function renderBarPnL(D) {
+  destroyChart('pnl');
+  // 통합 기준 손익 Top 5 + 손실 Top 5
+  const sorted = [...D.consolidated]
+    .filter(h => h.pnl != null)
+    .sort((a, b) => b.pnl - a.pnl);
+  const wins = sorted.slice(0, 5);
+  const losses = sorted.slice(-5).reverse();
+  const items = [...wins, ...losses];
+  const ctx = document.getElementById('chart-pnl').getContext('2d');
+  chartInstances['pnl'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: items.map(i => i.name),
+      datasets: [{
+        label: '평가손익 (KRW)',
+        data: items.map(i => i.pnl),
+        backgroundColor: items.map(i => i.pnl >= 0 ? '#22C55E' : '#EF4444'),
+        borderRadius: 4,
+      }],
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1F2937', borderColor: '#2D3748', borderWidth: 1, padding: 12,
+          callbacks: { label: ctx => fmt.signed(ctx.raw) }
+        }
+      },
+      scales: {
+        x: {
+          min: -50_000_000, max: 50_000_000,
+          grid: { color: ctx => ctx.tick.value === 0 ? '#475569' : '#1F2937' },
+          ticks: { callback: v => '₩' + (v / 1e6).toFixed(0) + 'M' }
+        },
+        y: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+function renderTableConcentration(D) {
+  const rows = D.top5Concentration.map((c, i) => `
+    <tr>
+      <td class="muted">${i + 1}</td>
+      <td><strong>${c.name}</strong></td>
+      <td class="muted">${c.ticker || '-'}</td>
+      <td class="num">${fmt.krw(c.value)}</td>
+      <td class="num"><strong>${fmt.pct1(c.pct)}</strong></td>
+      <td><span class="pill ${pillClass(c.status)}">${c.status}</span></td>
+    </tr>`).join('');
+  document.getElementById('tbl-conc').innerHTML =
+    `<thead><tr><th>#</th><th>종목</th><th>티커</th><th class="num">평가금액</th><th class="num">순자산 비중</th><th>상태</th></tr></thead>
+     <tbody>${rows}</tbody>`;
+}
+
+function renderTableRisk(D) {
+  const rows = D.riskMonitor.map(r => `
+    <tr>
+      <td><span class="pill muted">${r.category}</span></td>
+      <td><strong>${r.item}</strong></td>
+      <td class="num">${fmt.pct1(r.current)}</td>
+      <td class="num muted">${fmt.pct1(r.threshold)}</td>
+      <td><span class="pill ${pillClass(r.status)}">${r.status}</span></td>
+      <td class="muted">${r.interpretation || ''}</td>
+    </tr>`).join('');
+  document.getElementById('tbl-risk').innerHTML =
+    `<thead><tr><th>분류</th><th>항목</th><th class="num">현재</th><th class="num">임계</th><th>상태</th><th>해석</th></tr></thead>
+     <tbody>${rows}</tbody>`;
+}
+
+function renderTableConsolidated(D) {
+  const rows = D.consolidated.map(c => {
+    const pnlClass = c.pnl > 0 ? 'positive' : c.pnl < 0 ? 'negative' : '';
+    const flags = [];
+    if (c.highVol === 'Y') flags.push('<span class="pill warn">고변동</span>');
+    if (c.leverage === 'Y') flags.push('<span class="pill danger">레버리지</span>');
+    if (c.concentration === 'Y') flags.push('<span class="pill danger">고집중</span>');
+    const flagsHtml = flags.length
+      ? `<span class="flags-cell">${flags.join('')}</span>`
+      : '<span class="muted">—</span>';
+    return `<tr>
+      <td><strong>${c.name}</strong></td>
+      <td class="muted">${c.ticker}</td>
+      <td class="muted">${c.subClass || ''}</td>
+      <td class="num">${c.accountCount}</td>
+      <td class="num">${fmt.krw(c.value)}</td>
+      <td class="num">${fmt.krw(c.cost)}</td>
+      <td class="num ${pnlClass}">${fmt.signed(c.pnl)}</td>
+      <td class="num ${pnlClass}">${fmt.pct1(c.ret)}</td>
+      <td class="num">${fmt.pct1(c.netWorthPct)}</td>
+      <td>${flagsHtml}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('tbl-cons').innerHTML =
+    `<thead><tr>
+       <th>종목</th><th>티커</th><th>세부 분류</th><th class="num">계좌수</th>
+       <th class="num">평가금액</th><th class="num">매입원가</th>
+       <th class="num">손익</th><th class="num">수익률</th>
+       <th class="num">순자산 비중</th><th>플래그</th>
+     </tr></thead><tbody>${rows}</tbody>`;
+}
+
+function renderRealizedPnL(D) {
+  const rp = D.realizedKpi || {};
+  const setColor = (id, v) => {
+    const el = document.getElementById(id);
+    el.textContent = fmt.signed(v);
+    el.className = 'kpi-value kpi-value-sm ' + (v > 0 ? 'positive' : v < 0 ? 'negative' : '');
+  };
+  setColor('rp-net',  rp.ytdNet);
+  setColor('rp-gain', rp.ytdGain);
+  setColor('rp-inc',  rp.ytdInc);
+  setColor('rp-mtd',  rp.mtd);
+  // 양도세는 음수가 없음 — 흰색 유지
+  document.getElementById('rp-tax').textContent = fmt.krw(rp.estTax);
+
+  // 월별 막대
+  destroyChart('realized-monthly');
+  const months = (D.realizedMonthly || []).map(m => m.month.slice(5));  // MM 만
+  const nets = (D.realizedMonthly || []).map(m => m.net);
+  const ctx = document.getElementById('chart-realized-monthly').getContext('2d');
+  chartInstances['realized-monthly'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: months,
+      datasets: [{
+        label: '순 실현손익',
+        data: nets,
+        backgroundColor: nets.map(v => v >= 0 ? '#22C55E' : '#EF4444'),
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1F2937', borderColor: '#2D3748', borderWidth: 1,
+          callbacks: { label: ctx => fmt.signed(ctx.raw) }
+        }
+      },
+      scales: {
+        x: { grid: { display: false } },
+        y: {
+          grid: { color: ctx => ctx.tick.value === 0 ? '#475569' : '#1F2937' },
+          ticks: { callback: v => v === 0 ? '0' : (v / 1e6).toFixed(0) + 'M' }
+        }
+      }
+    }
+  });
+
+  // 최근 거래
+  const recent = D.realizedRecent || [];
+  if (recent.length === 0) {
+    document.getElementById('rp-recent').innerHTML =
+      '<div style="color:var(--text-3);padding:32px 0;text-align:center;font-size:0.88rem;">'
+      + '아직 입력된 거래가 없습니다.<br>Realized_PnL 시트의 행 31부터 추가하세요.</div>';
+    return;
+  }
+  const rows = recent.map(t => {
+    const cls = (t.netPnL || 0) > 0 ? 'positive' : (t.netPnL || 0) < 0 ? 'negative' : '';
+    const typePill = t.type === '매매차익' ? 'pill' : t.type === '배당' ? 'pill good' : 'pill muted';
+    return `<div class="list-item" style="padding:10px 0;">
+      <div style="flex:1;">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:3px;">
+          <span class="${typePill}">${t.type}</span>
+          <strong>${t.name}</strong>
+          <span style="color:var(--text-3);font-size:0.78rem;">${t.date.slice(0,10)}</span>
+        </div>
+        <div style="color:var(--text-2);font-size:0.82rem;">${t.category || ''} ${t.memo ? '· ' + t.memo : ''}</div>
+      </div>
+      <div class="${cls}" style="font-weight:600;font-variant-numeric:tabular-nums;">${fmt.signed(t.netPnL)}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('rp-recent').innerHTML = rows;
+}
+
+function renderCashFlow(D) {
+  const cf = D.cashflowKpi || {};
+  const setColor = (id, v, fmtFn) => {
+    const el = document.getElementById(id);
+    el.textContent = (fmtFn || fmt.signed)(v);
+    el.className = 'kpi-value kpi-value-sm ' + (v > 0 ? 'positive' : v < 0 ? 'negative' : '');
+  };
+  setColor('cf-delta',   cf.deltaNW);
+  setColor('cf-income',  cf.income);
+  setColor('cf-capgain', cf.capGain);
+  setColor('cf-other',   cf.other);
+  setColor('cf-debt',    cf.debtChg);
+
+  document.getElementById('cf-delta-pct').textContent = 'ΔNW · ' + fmt.pct1(cf.deltaPct);
+  document.getElementById('cf-asof').textContent = '기준월: ' + (cf.asofMonth || '—');
+
+  // 한 줄 평가
+  let summary = '데이터 부족';
+  if (cf.income != null && cf.capGain != null) {
+    if (cf.capGain > cf.income && cf.income > 0) {
+      summary = '자본 > 노동';
+    } else if (cf.income > 0 && cf.capGain >= 0) {
+      summary = '소득 우위';
+    } else if (cf.capGain < 0) {
+      summary = '평가손실 진입';
+    } else if (cf.income === 0 && cf.capGain === 0) {
+      summary = '데이터 입력 대기';
+    }
+  }
+  const summEl = document.getElementById('cf-summary');
+  summEl.textContent = summary;
+  summEl.className = 'kpi-value kpi-value-sm';
+
+  // Bridge 차트 — 변동 항목 7개 (기초/기말 제외)
+  destroyChart('bridge');
+  const bridgeItems = (D.bridge || []).slice(1, 8);  // 1~7번 (월소득~기타)
+  const bridgeLabels = bridgeItems.map(b => b.name);
+  const bridgeVals = bridgeItems.map(b => b.value);
+  const ctxB = document.getElementById('chart-bridge').getContext('2d');
+  chartInstances['bridge'] = new Chart(ctxB, {
+    type: 'bar',
+    data: {
+      labels: bridgeLabels,
+      datasets: [{
+        label: '변동 (KRW)',
+        data: bridgeVals,
+        backgroundColor: bridgeVals.map(v => v >= 0 ? '#22C55E' : '#EF4444'),
+        borderRadius: 4,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1F2937', borderColor: '#2D3748', borderWidth: 1,
+          callbacks: { label: ctx => fmt.signed(ctx.raw) }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+        y: {
+          grid: { color: ctx => ctx.tick.value === 0 ? '#475569' : '#1F2937' },
+          ticks: { callback: v => v === 0 ? '0' : (v / 1e6).toFixed(0) + 'M' }
+        }
+      }
+    }
+  });
+
+  // 월별 NW 추이 (총자산/부채/순자산)
+  destroyChart('nw-trend');
+  const months = (D.monthlyAll || []).map(m => m.month);
+  const ta = (D.monthlyAll || []).map(m => m.totalAsset);
+  const td = (D.monthlyAll || []).map(m => m.totalDebt);
+  const nw = (D.monthlyAll || []).map(m => m.netWorth);
+  const ctxT = document.getElementById('chart-nw-trend').getContext('2d');
+  chartInstances['nw-trend'] = new Chart(ctxT, {
+    type: 'line',
+    data: {
+      labels: months,
+      datasets: [
+        { label: '총자산', data: ta, borderColor: '#3B82F6', backgroundColor: 'rgba(59,130,246,0.1)', tension: 0.35, fill: false },
+        { label: '총부채', data: td, borderColor: '#EF4444', backgroundColor: 'rgba(239,68,68,0.1)', tension: 0.35, fill: false },
+        { label: '순자산', data: nw, borderColor: '#22C55E', backgroundColor: 'rgba(34,197,94,0.1)', tension: 0.35, fill: false },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', labels: { boxWidth: 12, padding: 12, font: { size: 12 } } },
+        tooltip: {
+          backgroundColor: '#1F2937', borderColor: '#2D3748', borderWidth: 1,
+          callbacks: { label: ctx => `${ctx.dataset.label}: ${fmt.krw(ctx.raw)}` }
+        }
+      },
+      scales: {
+        x: { grid: { display: false } },
+        y: {
+          grid: { color: '#1F2937' },
+          ticks: { callback: v => '₩' + (v / 1e6).toFixed(0) + 'M' }
+        }
+      }
+    }
+  });
+}
+
+function renderAll(D) {
+  renderEvolution(D);
+  renderKPIs(D);
+  renderRiskStrip(D);
+  renderTopRisksAndActions(D);
+  renderDonutAssetGroup(D);
+  renderDonutInvGroup(D);
+  renderBarTop10(D);
+  renderBarPnL(D);
+  renderRealizedPnL(D);
+  renderCashFlow(D);
+  renderTableConcentration(D);
+  renderTableRisk(D);
+  renderTableConsolidated(D);
+}
+
+// ───── XLSX 재업로드 ─────
+async function handleFile(file) {
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, { type: 'array' });
+  const D = parseWorkbook(wb);
+  renderAll(D);
+  document.getElementById('meta-asof').textContent = D.asof + ' (방금 갱신됨)';
+  document.getElementById('footer-asof').textContent = new Date().toLocaleString('ko-KR') + ' · 사용자 업로드';
+}
+
+function getCell(ws, addr) {
+  const c = ws[addr];
+  return c ? c.v : null;
+}
+
+function parseWorkbook(wb) {
+  const D = {
+    asof: '갱신', kpi: {}, subKpi: {}, riskRatios: {},
+    assetGroup: [], invGroup: [], consolidated: [], top5Concentration: [],
+    riskMonitor: [], pnl: [], monthlySnap: []
+  };
+  const dash = wb.Sheets['Dashboard'];
+  if (dash) {
+    D.kpi = {
+      '총자산': getCell(dash, 'A6'), '순자산': getCell(dash, 'C6'),
+      '총부채': getCell(dash, 'E6'), '투자자산': getCell(dash, 'G6'),
+      '부채비율': getCell(dash, 'I6')
+    };
+    D.subKpi = {
+      '현금성 자산': getCell(dash, 'A10'), '부동산+보증금': getCell(dash, 'C10'),
+      '비트코인': getCell(dash, 'E10'), '주식/ETF (통합)': getCell(dash, 'G10'),
+      '퇴직연금/예금': getCell(dash, 'I10')
+    };
+    D.riskRatios = {
+      '부채/순자산': getCell(dash, 'A14'), '위험자산/순자산': getCell(dash, 'C14'),
+      '레버리지/순자산': getCell(dash, 'E14'), 'CRDU/순자산': getCell(dash, 'G14'),
+      '비트코인/순자산': getCell(dash, 'I14')
+    };
+    for (let r = 27; r <= 32; r++) {
+      const n = getCell(dash, `A${r}`);
+      if (n) D.assetGroup.push({ name: n, value: getCell(dash, `B${r}`), pct: getCell(dash, `C${r}`) });
+    }
+    for (let r = 27; r <= 31; r++) {
+      const n = getCell(dash, `H${r}`);
+      if (n) D.top5Concentration.push({
+        name: n, ticker: getCell(dash, `I${r}`), value: getCell(dash, `J${r}`),
+        pct: getCell(dash, `K${r}`), status: getCell(dash, `L${r}`)
+      });
+    }
+  }
+  const ch = wb.Sheets['Consolidated_Holdings'];
+  if (ch) for (let r = 5; r <= 30; r++) {
+    const n = getCell(ch, `A${r}`);
+    const tk = getCell(ch, `B${r}`);
+    // ticker 가 없으면 데이터 행이 아님 (합계 / 안내 텍스트 등 제외)
+    if (!n || !tk || n === '합계') continue;
+    D.consolidated.push({
+      name: n, ticker: getCell(ch, `B${r}`),
+      assetClass: getCell(ch, `C${r}`), subClass: getCell(ch, `D${r}`),
+      accountCount: getCell(ch, `E${r}`), value: getCell(ch, `F${r}`),
+      cost: getCell(ch, `G${r}`), pnl: getCell(ch, `H${r}`),
+      ret: getCell(ch, `I${r}`),
+      totalAssetPct: getCell(ch, `J${r}`), netWorthPct: getCell(ch, `K${r}`),
+      investmentPct: getCell(ch, `L${r}`),
+      highVol: getCell(ch, `M${r}`), leverage: getCell(ch, `N${r}`),
+      concentration: getCell(ch, `O${r}`), memo: getCell(ch, `P${r}`)
+    });
+  }
+  const rm = wb.Sheets['Risk_Monitor'];
+  if (rm) for (let r = 5; r <= 20; r++) {
+    const n = getCell(rm, `B${r}`);
+    if (!n) break;
+    D.riskMonitor.push({
+      category: getCell(rm, `A${r}`), item: n,
+      current: getCell(rm, `C${r}`), threshold: getCell(rm, `D${r}`),
+      status: getCell(rm, `E${r}`),
+      interpretation: getCell(rm, `F${r}`), action: getCell(rm, `G${r}`)
+    });
+  }
+  const pc = wb.Sheets['Portfolio_Charts'];
+  if (pc) for (let r = 42; r <= 48; r++) {
+    const n = getCell(pc, `A${r}`);
+    if (n) D.invGroup.push({ name: n, value: getCell(pc, `B${r}`), pct: getCell(pc, `C${r}`) });
+  }
+  // Realized_PnL
+  const rp = wb.Sheets['Realized_PnL'];
+  D.realizedKpi = {}; D.realizedMonthly = []; D.realizedRecent = [];
+  if (rp) {
+    D.realizedKpi = {
+      ytdNet: getCell(rp, 'A6'), ytdGain: getCell(rp, 'C6'),
+      ytdInc: getCell(rp, 'E6'), mtd: getCell(rp, 'G6'), estTax: getCell(rp, 'I6')
+    };
+    for (let r = 11; r <= 22; r++) {
+      const m = getCell(rp, `A${r}`);
+      if (!m) continue;
+      D.realizedMonthly.push({
+        month: String(m), gain: getCell(rp, `B${r}`) || 0,
+        income: getCell(rp, `C${r}`) || 0, cost: getCell(rp, `D${r}`) || 0,
+        net: getCell(rp, `E${r}`) || 0, cumulative: getCell(rp, `F${r}`) || 0,
+      });
+    }
+    const ledger = [];
+    for (let r = 31; r <= 80; r++) {
+      const d = getCell(rp, `A${r}`); const t = getCell(rp, `B${r}`);
+      if (!d || !t) continue;
+      // Excel serial → JS Date 변환 (필요 시)
+      let dateStr;
+      if (typeof d === 'number') {
+        // Excel serial date
+        const ms = (d - 25569) * 86400 * 1000;
+        dateStr = new Date(ms).toISOString().slice(0, 10);
+      } else dateStr = String(d);
+      ledger.push({
+        date: dateStr, type: t, name: getCell(rp, `C${r}`),
+        ticker: getCell(rp, `D${r}`), qty: getCell(rp, `G${r}`),
+        krwPnL: getCell(rp, `N${r}`), fee: getCell(rp, `O${r}`) || 0,
+        tax: getCell(rp, `P${r}`) || 0, netPnL: getCell(rp, `Q${r}`),
+        category: getCell(rp, `S${r}`), memo: getCell(rp, `T${r}`),
+      });
+    }
+    ledger.sort((a, b) => a.date < b.date ? 1 : -1);
+    D.realizedRecent = ledger.slice(0, 5);
+  }
+  // Cash Flow KPI (Dashboard 행 43)
+  if (dash) {
+    D.cashflowKpi = {
+      deltaNW:   getCell(dash, 'A43'),
+      deltaPct:  getCell(dash, 'C43'),
+      income:    getCell(dash, 'E43'),
+      capGain:   getCell(dash, 'G43'),
+      other:     getCell(dash, 'I43'),
+      debtChg:   getCell(dash, 'K43'),
+    };
+  }
+  // Net Worth Bridge (행 8-16)
+  const nb = wb.Sheets['Net_Worth_Bridge'];
+  D.bridge = []; D.monthlyAll = [];
+  if (nb) {
+    D.cashflowKpi.asofMonth = getCell(nb, 'B4');
+    for (let r = 8; r <= 16; r++) {
+      const name = getCell(nb, `B${r}`); const val = getCell(nb, `C${r}`);
+      if (name) D.bridge.push({ name: name, value: val || 0 });
+    }
+  }
+  // Monthly_Snapshot 전체
+  const ms2 = wb.Sheets['Monthly_Snapshot'];
+  if (ms2) for (let r = 5; r <= 41; r++) {
+    const m = getCell(ms2, `A${r}`);
+    if (!m) continue;
+    D.monthlyAll.push({
+      month: String(m),
+      totalAsset: getCell(ms2, `B${r}`) || 0,
+      totalDebt:  getCell(ms2, `C${r}`) || 0,
+      netWorth:   getCell(ms2, `D${r}`) || 0,
+      income:     getCell(ms2, `L${r}`) || 0,
+      capGain:    getCell(ms2, `N${r}`) || 0,
+      other:      getCell(ms2, `R${r}`) || 0,
+      deltaNW:    getCell(ms2, `S${r}`) || 0,
+    });
+  }
+  D.asof = new Date().toISOString().slice(0,10);
+  return D;
+}
+
+// ───── 이벤트 (상단 '데이터 갱신' 버튼만 사용) ─────
+const fileInput = document.getElementById('file-input');
+const btnReload = document.getElementById('btn-reload');
+
+btnReload.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => {
+  if (e.target.files[0]) handleFile(e.target.files[0]);
+});
+
+// ───── 초기 렌더 ─────
+renderAll(SNAPSHOT);
+</script>
+</body>
+</html>

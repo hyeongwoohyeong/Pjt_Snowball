@@ -1,0 +1,14 @@
+# Personal financial data — DO NOT push
+*.xlsx
+*.xls
+*.csv
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/
+
+# Backup
+*_backup/
+**/_backup/
