@@ -725,7 +725,9 @@ function fmtCondition(c) {
 
 function imagePath(filename) {
   // 한글/공백 포함 파일명 → URL 인코딩
-  return 'digimon%20image/' + encodeURIComponent(filename);
+  // macOS 파일시스템은 NFD 정규화 사용 — JS 기본(NFC)과 다름.
+  // GitHub 에는 NFD 로 저장되어 있어서 NFD 로 정규화 후 인코딩 필요.
+  return 'digimon%20image/' + encodeURIComponent(filename.normalize('NFD'));
 }
 
 function renderEvolution(D) {
